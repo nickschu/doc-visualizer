@@ -1,4 +1,4 @@
-import pdfplumber # markitdown?
+import pdfplumber
 from tiktoken import get_encoding
 
 def num_tokens_from_string(string: str, encoding_name: str = "cl100k_base") -> int:
