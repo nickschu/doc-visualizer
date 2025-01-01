@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, File, UploadFile, HTTPException, BackgroundTasks
 import uuid
 
@@ -6,6 +7,8 @@ from ..services.embeddings import get_embedding
 from ..services.pinecone import upsert_embeddings
 
 router = APIRouter()
+
+TEMP_DIRECTORY = os.getenv("TEMP_DIRECTORY", "/tmp")
 
 @router.post("/upload-doc")
 async def upload_doc(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
@@ -16,7 +19,7 @@ async def upload_doc(file: UploadFile = File(...), background_tasks: BackgroundT
     doc_id = str(uuid.uuid4())
 
     # TODO: Think about whether this should be stored
-    file_path = f"/tmp/{doc_id}.pdf"
+    file_path = f"{TEMP_DIRECTORY}/{doc_id}.pdf"
     with open(file_path, "wb") as f:
         f.write(await file.read())
 

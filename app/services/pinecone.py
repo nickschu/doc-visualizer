@@ -9,15 +9,15 @@ VECTOR_DIMENSION = 1536 # hardcoded to text-embedding-3-small OAI model for now
 # TODO: Handle index creation / deletion
 INDEX_NAME = "doc-visualizer-index"
 
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+
 def init_pinecone():
     """Initialize Pinecone (call once at startup)."""
-    pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-    if INDEX_NAME not in pc.list_indexes():
+    if INDEX_NAME not in pc.list_indexes().names():
         pc.create_index(
             name=INDEX_NAME, 
             dimension=VECTOR_DIMENSION,
             metric="cosine",
-            dimension=1536,
             spec=ServerlessSpec(
                 cloud=os.getenv("PINECONE_CLOUD", "aws"),
                 region=os.getenv("PINECONE_REGION", "us-east-1")
@@ -27,7 +27,8 @@ def init_pinecone():
 
 # Create global index object
 init_pinecone()  # Initialize once
-index = Index(INDEX_NAME)
+host = pc.describe_index(INDEX_NAME).host
+index = pc.Index(INDEX_NAME, host)
 
 def upsert_embeddings(
     doc_id: str, 
