@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 
 from .routers import upload
@@ -13,8 +16,8 @@ app.include_router(upload.router, tags=["upload"])
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "app.main:app", 
-        host="0.0.0.0", 
-        port=8000, 
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
         reload=True
     )
