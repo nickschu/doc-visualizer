@@ -4,7 +4,7 @@ import uuid
 
 from ..services.parsing import chunk_text_from_pdf
 from ..services.embeddings import get_embedding
-from ..services.pinecone import upsert_embeddings
+from ..services.vector_store import upsert_embeddings
 
 router = APIRouter()
 

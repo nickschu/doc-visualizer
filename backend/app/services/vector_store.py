@@ -1,34 +1,7 @@
 import os
 from typing import List, Dict
 
-from pinecone.grpc import PineconeGRPC as Pinecone
-from pinecone import ServerlessSpec, Index
-
-VECTOR_DIMENSION = 1536 # hardcoded to text-embedding-3-small OAI model for now
-
-# TODO: Handle index creation / deletion
-INDEX_NAME = "doc-visualizer-index"
-
-pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-
-def init_pinecone():
-    """Initialize Pinecone (call once at startup)."""
-    if INDEX_NAME not in pc.list_indexes().names():
-        pc.create_index(
-            name=INDEX_NAME, 
-            dimension=VECTOR_DIMENSION,
-            metric="cosine",
-            spec=ServerlessSpec(
-                cloud=os.getenv("PINECONE_CLOUD", "aws"),
-                region=os.getenv("PINECONE_REGION", "us-east-1")
-            ),
-            deletion_protection="disabled"
-        )
-
-# Create global index object
-init_pinecone()  # Initialize once
-host = pc.describe_index(INDEX_NAME).host
-index = pc.Index(INDEX_NAME, host)
+from .clients import get_pinecone_client
 
 def upsert_embeddings(
     doc_id: str, 
@@ -54,6 +27,8 @@ def upsert_embeddings(
         }
         vectors_to_upsert.append((vector_id, embedding, metadata))
 
+    index = get_pinecone_client()
+
     # Upsert into Pinecone
     index.upsert(vectors=vectors_to_upsert)
 
@@ -69,6 +44,9 @@ def query_top_k(
     :param filter_dict: Optional filter to limit results by metadata.
     :return: A list of matches, each match is a dict containing { id, score, metadata }.
     """
+
+    index = get_pinecone_client()
+
     response = index.query(
         vector=query_embedding,
         top_k=top_k,
