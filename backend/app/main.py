@@ -3,7 +3,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 
-from .routers import upload
+from .routers import upload, visualize
 
 app = FastAPI(
     title="doc-visualizer-backend",
@@ -11,6 +11,7 @@ app = FastAPI(
 )
 
 app.include_router(upload.router, tags=["upload"])
+app.include_router(visualize.router, tags=["visualize"])
 
 # Start the FastAPI server
 if __name__ == "__main__":

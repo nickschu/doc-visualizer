@@ -14,11 +14,10 @@ TEMP_DIRECTORY = os.getenv("TEMP_DIRECTORY", "/tmp")
 async def upload_doc(file: UploadFile = File(...), background_tasks: BackgroundTasks = None):
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
-    
-    # Generate a unique ID for this document
-    doc_id = str(uuid.uuid4())
 
-    # TODO: Think about whether this should be stored
+    # TODO: handle storing documents for multiple users
+    doc_id = file.filename.split(".")[0]  # Use filename as doc_id for now
+
     file_path = f"{TEMP_DIRECTORY}/{doc_id}.pdf"
     with open(file_path, "wb") as f:
         f.write(await file.read())
