@@ -2,7 +2,7 @@ import os
 from fastapi import APIRouter, HTTPException
 from typing import Dict, Any
 
-from ..services.analysis import find_top_k_insights
+from ..services.analysis import find_section_insights
 
 router = APIRouter()
 
@@ -30,7 +30,7 @@ def generate_visualization(path: str) -> None:
     Generate the visualization for a given document.
     """
 
-    insights = find_top_k_insights(path, top_k=3, model="gpt-4o-mini")
+    insights = find_section_insights(path, model="gpt-4o-mini")
 
     return
 
