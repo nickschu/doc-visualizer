@@ -22,12 +22,10 @@ export default function upload() {
     }
     setIsUploading(true);
 
-    // We'll hit the Next.js route instead of the FastAPI backend directly
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      // Notice we're calling /api/upload, which is our Next.js route
       const res = await fetch("/api/upload", {
         method: "POST",
         body: formData,
@@ -49,7 +47,7 @@ export default function upload() {
 
   return (
     <div className="mx-auto mt-10 max-w-md p-4">
-      <h1 className="mb-4 text-2xl font-bold">Upload Your 10-K Document</h1>
+      <h1 className="mb-4 text-2xl font-bold">Upload Financial Document</h1>
 
       <input
         type="file"

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Grab the form data from the incoming request
+    // Grab the form data from the incoming request
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
 
@@ -13,11 +13,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Create a new FormData to forward to FastAPI
+    // Create a new FormData to forward to FastAPI
     const forwardFormData = new FormData();
     forwardFormData.append("file", file);
 
-    // 3. Forward the form data to the FastAPI backend
+    // Forward the form data to the FastAPI backend
     const backendRes = await fetch(`${process.env.BACKEND_API_URL}/upload-doc`, {
       method: "POST",
       body: forwardFormData,
