@@ -10,6 +10,10 @@ app = FastAPI(
     version="0.1.0"
 )
 
+@app.get("/")
+def read_root():
+    return "doc-visualizer-backend is running"
+
 app.include_router(upload.router, tags=["upload"])
 app.include_router(visualize.router, tags=["visualize"])
 
