@@ -1,4 +1,3 @@
-from typing import List
 from pydantic import BaseModel
 
 from .clients import get_openai_client
@@ -21,7 +20,7 @@ class InsightsReponse(BaseModel):
     risk_factors: Section
     market_position: Section
 
-def find_section_insights(path: str, model: str = "gpt-4o-mini") -> List[str]:
+def find_section_insights(path: str, model: str = "gpt-4o-mini") -> InsightsReponse:
     """
     Prompt model for the sections of the document and the most important insights for each section.
     :param path: The path to the document.
@@ -58,14 +57,12 @@ def find_section_insights(path: str, model: str = "gpt-4o-mini") -> List[str]:
             }
         ],
         temperature=0.3,
-        max_tokens=50000,
         response_format=InsightsReponse
     )
 
     message = response.choices[0].message
     if message.parsed:
         insights = message.parsed
-        print(insights)
     else:
         print(message)
         raise ValueError("No parsed response from model completion.")

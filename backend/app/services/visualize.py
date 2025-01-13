@@ -1,29 +1,12 @@
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Union
 from pydantic import BaseModel
 from typing_extensions import Literal
+import concurrent.futures
 
-from .analysis import InsightsReponse
-from .clients import get_openai_client, get_pinecone_client
-
-"""class Insight(BaseModel):
-    name: str
-    insight_summary: str
-    data: Optional[Dict[str, Union[List[str], str]]]
-
-class Section(BaseModel):
-    summary: str
-    main_insight: Insight
-    side_insight_1: Insight
-    side_insight_2: Insight
-
-class InsightsReponse(BaseModel):
-    company_name: str
-    overview: Section
-    operational_performance: Section
-    risk_factors: Section
-    market_position: Section"""
-
-
+from .analysis import InsightsReponse, Section, Insight
+from .vector_store import query_top_k
+from .embeddings import get_embedding
+from .clients import get_openai_client
 
 class ChartBase(BaseModel):
     """
@@ -32,8 +15,10 @@ class ChartBase(BaseModel):
     """
     chart_type: str  # e.g., "bar_chart", "pie_chart", etc.
     title: Optional[str] = None
-    description: Optional[str] = None
+    commentary: Optional[str] = None
 
+class TextCard(ChartBase):
+    chart_type: Literal["text_card"]
 
 class BarChart(ChartBase):
     chart_type: Literal["bar_chart"]
@@ -98,17 +83,22 @@ class MultiSeriesBarChart(ChartBase):
     series: List[DataSeries]
 
 
-ChartSpec = Union[BarChart, PieChart, GaugeChart, SingleStatCard, LineChart, MultiSeriesBarChart]
+ChartSpec = Union[BarChart, PieChart, GaugeChart, SingleStatCard, LineChart, MultiSeriesBarChart, TextCard]
 
+class _ChartSpecAdapter(BaseModel):
+    # Adapter for parsing the GPT-4o output into a ChartSpec. In this format since OAI endpoint
+    # doesn't seem to accept Union or Pydantic v2 RootModels directly.
+    # TODO: See if there are other ways to create root models that OAI endpoint accepts
+    chart: ChartSpec
 
 class VisualModule(BaseModel):
-    # Unique identifier for this module
-    module_id: str
+    module_id: str # Unique identifier for this module
     
     # The type of visualization (BarChart, PieChart, GaugeChart, SingleStatCard, LineChart, MultiSeriesBarChart)
-    chart_type: ChartSpec
+    chart: ChartSpec
 
 class VisualSection(BaseModel):
+    section_id: str # Unique identifier for this section
     name: str  # e.g. "overview", "risk_factors"
     summary: str  # textual summary from the original GPT response
     main_module: VisualModule
@@ -116,9 +106,216 @@ class VisualSection(BaseModel):
     side_module_2: VisualModule
 
 class VisualResponse(BaseModel):
+    response_id: str # Unique identifier for this response
     company_name: str
     overview: VisualSection
     operational_performance: VisualSection
     risk_factors: VisualSection
     market_position: VisualSection
 
+
+def make_chart_spec(
+    insight: Insight,
+    section_name: str,
+    section_summary: str,
+    model: str = 'gpt-4o-mini'
+) -> Optional[ChartSpec]:
+
+    # System Prompt
+    chart_schema_explanation = """
+    You have access to the following chart models. Below is the schema, with an explanation of each field:
+
+    1. BarChart
+    - chart_type: "bar_chart"
+    - title (optional): Title of the chart
+    - description (optional): A short description of what the chart shows
+    - x_labels: List of strings for the horizontal axis categories
+    - y_values: List of floats for the values corresponding to x_labels
+    - y_label (optional): Label for the Y-axis (like "Revenue (billions)")
+
+    2. PieChart
+    - chart_type: "pie_chart"
+    - title (optional)
+    - description (optional)
+    - labels: List of strings, each one is a slice label
+    - values: List of floats, each corresponding to the slice values
+    - total (optional): A float representing the total if you want to show an explicit sum
+
+    3. GaugeChart
+    - chart_type: "gauge_chart"
+    - title (optional)
+    - description (optional)
+    - min_value: float (e.g., 0)
+    - max_value: float (e.g., 100)
+    - current_value: float (the current reading on the gauge)
+    - unit_label (optional): e.g., "%" or "billions"
+
+    4. SingleStatCard
+    - chart_type: "single_stat"
+    - title (optional)
+    - description (optional)
+    - value: float (the main numeric value)
+    - value_label (optional): e.g., "billion USD", "%"
+    - sublabel (optional): short text or detail
+
+    5. LineChart
+    - chart_type: "line_chart"
+    - title (optional)
+    - description (optional)
+    - x_labels: list of strings (the points or categories along the X-axis)
+    - y_values: list of floats (the data points along the line)
+    - y_label (optional): label for the Y-axis
+
+    6. MultiSeriesBarChart
+    - chart_type: "multi_series_bar"
+    - title (optional)
+    - description (optional)
+    - x_labels: list of strings (horizontal axis categories)
+    - series: list of DataSeries (each DataSeries has:
+        - name: string (the label for that data series)
+        - values: list of floats corresponding to x_labels
+        )
+
+    7. TextCard
+    # Only use this if there is no data associated with the insight to display.
+    - chart_type: "text_card"
+    - title (optional)
+    - description (optional)
+    """
+
+    system_message = f"""
+    You are a data visualization expert. You will be given an 'Insight' from a 10-K.
+    Use the provided relevant text to decide on an appropriate chart type and data.
+    {chart_schema_explanation}
+    """
+
+    # Get embeddings for insight text
+    emb = get_embedding([insight.name + ' ' + insight.insight_summary])[0]
+    relevant_text = query_top_k(emb, top_k=3)
+    relevant_text = "\n\n".join([f"<excerpt_{i+1}>\n{t['metadata']['text']} </excerpt_{i+1}>" for i, t in enumerate(relevant_text)])
+
+
+    # User Prompt
+
+    user_message = f"""
+    Relevant 10-K Excerpts:
+    {relevant_text}
+
+    Section:
+    Name: {section_name}
+    Summary {section_summary}
+
+    Insight:
+    Name: {insight.name}
+    Summary: {insight.insight_summary}
+
+    Your task:
+    1. Select the best chart type from the available ones for displaying the insight.
+    2. Fill out all required data fields with information from the excerpts.
+    """
+
+    client = get_openai_client()
+
+    response = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": system_message,
+            },
+            {
+                "role": "user",
+                "content": user_message
+            }
+        ],
+        temperature=0.3,
+        response_format=_ChartSpecAdapter
+    )
+
+    message = response.choices[0].message
+    if message.parsed:
+        chart_spec = message.parsed.chart
+        print(chart_spec)
+    else:
+        print("[ERROR]: No parsed response from model completion.")
+        print(message)
+        return
+
+    return chart_spec
+
+def create_visual_module(
+    insight: Insight, 
+    section_name: str, 
+    section_summary: str, 
+    module_id: str
+) -> VisualModule:
+    chart = make_chart_spec(insight, section_name, section_summary)
+    # If GPT fails or returns None, we can fallback to a simple text card:
+    if not chart:
+        chart = TextCard(
+            chart_type="text_card",
+            title=insight.name,
+            description=insight.insight_summary
+        )
+    return VisualModule(module_id=module_id, chart=chart)
+
+
+def make_visualization(
+    insights: InsightsReponse,
+    id: str
+) -> VisualResponse:
+
+    def process_section(section_name: str, section: Section, section_id: str) -> VisualSection:
+        # Do GPT visualization creation in parallel for the Section
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            future_main = executor.submit(
+                create_visual_module,
+                insight = section.main_insight,
+                section_name = section_name,
+                section_summary = section.summary,
+                module_id = f"{section_id}-main",
+            )
+            future_side1 = executor.submit(
+                create_visual_module,
+                insight = section.side_insight_1,
+                section_name = section_name,
+                section_summary = section.summary,
+                module_id = f"{section_id}-side1",
+            )
+            future_side2 = executor.submit(
+                create_visual_module,
+                insight = section.side_insight_2,
+                section_name = section_name,
+                section_summary = section.summary,
+                module_id = f"{section_id}-side2",
+            )
+
+            # Get results
+            main_module = future_main.result()
+            side_module_1 = future_side1.result()
+            side_module_2 = future_side2.result()
+
+        return VisualSection(
+            section_id=section_id,
+            name=section_name,
+            summary=section.summary,
+            main_module=main_module,
+            side_module_1=side_module_1,
+            side_module_2=side_module_2
+        )
+
+    # Process each of the sections
+    overview_sec = process_section("overview", insights.overview, f'{id}-overview')
+    op_perf_sec = process_section("operational_performance", insights.operational_performance, f'{id}-op_perf')
+    risk_factors_sec = process_section("risk_factors", insights.risk_factors, f'{id}-risk_factors')
+    market_pos_sec = process_section("market_position", insights.market_position, f'{id}-market_pos')
+
+    # Construct the final VisualResponse
+    return VisualResponse(
+        response_id=id,
+        company_name=insights.company_name,
+        overview=overview_sec,
+        operational_performance=op_perf_sec,
+        risk_factors=risk_factors_sec,
+        market_position=market_pos_sec
+    )
