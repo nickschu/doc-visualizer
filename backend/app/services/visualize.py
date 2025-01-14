@@ -305,10 +305,10 @@ def make_visualization(
         )
 
     # Process each of the sections
-    overview_sec = process_section("overview", insights.overview, f'{id}-overview')
-    op_perf_sec = process_section("operational_performance", insights.operational_performance, f'{id}-op_perf')
-    risk_factors_sec = process_section("risk_factors", insights.risk_factors, f'{id}-risk_factors')
-    market_pos_sec = process_section("market_position", insights.market_position, f'{id}-market_pos')
+    overview_sec = process_section("Overview", insights.overview, f'{id}-overview')
+    op_perf_sec = process_section("Operational Performance", insights.operational_performance, f'{id}-op_perf')
+    risk_factors_sec = process_section("Risk Factors", insights.risk_factors, f'{id}-risk_factors')
+    market_pos_sec = process_section("Market Position", insights.market_position, f'{id}-market_pos')
 
     # Construct the final VisualResponse
     return VisualResponse(

@@ -1,47 +1,29 @@
 import os
-from fastapi import APIRouter, HTTPException
-from typing import Dict, Any
+from fastapi import APIRouter, HTTPException, Body
 
 from ..services.analysis import find_section_insights
-from ..services.visualize import make_visualization
+from ..services.visualize import make_visualization, VisualResponse
 
 router = APIRouter()
 
 @router.post("/generate-visualization")
-def visualize_doc(doc_id: str) -> Dict[str, Any]:
+def visualize_doc(doc_id: str = Body(..., embed=True)) -> VisualResponse:
     """
-    Produces frontend visualization for a given document ID.
+    Produces a VisualResponse for the given document ID.
     """
+    if not doc_id:
+        raise HTTPException(status_code=400, detail="Missing doc_id")
 
-    # Locate PDF file path based on doc_id
     pdf_path = _pdf_path_for_doc_id(doc_id)
     if not pdf_path or not os.path.exists(pdf_path):
         raise HTTPException(status_code=404, detail="Document not found.")
 
     try:
-        generate_visualization(pdf_path, doc_id)
-
+        insights = find_section_insights(pdf_path, model="gpt-4o-mini")
+        visualization = make_visualization(insights, doc_id)
+        return visualization
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-    return {"message": "Visualization created successfully", "doc_id": doc_id}
-
-def generate_visualization(path: str, doc_id: str) -> None:
-    """
-    Generate the visualization for a given document.
-    """
-
-    insights = find_section_insights(path, model="gpt-4o-mini")
-    print(('INSIGHTS',
-           insights),
-           '\n\n')
-    
-    visualization = make_visualization(insights, doc_id)
-    print(('VISUALIZATION',
-              visualization),
-              '\n\n')
-    return
-
 
 def _pdf_path_for_doc_id(doc_id: str) -> str:
     """

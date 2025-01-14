@@ -1,6 +1,5 @@
 import os
 from fastapi import APIRouter, File, UploadFile, HTTPException, BackgroundTasks
-import uuid
 
 from ..services.parsing import chunk_text_from_pdf
 from ..services.embeddings import get_embedding
