@@ -20,7 +20,7 @@ def visualize_doc(doc_id: str = Body(..., embed=True)) -> VisualResponse:
 
     try:
         insights = find_section_insights(pdf_path, model="gpt-4o-mini")
-        visualization = make_visualization(insights, doc_id)
+        visualization = make_visualization(insights, doc_id, model="gpt-4o-mini")
         return visualization
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

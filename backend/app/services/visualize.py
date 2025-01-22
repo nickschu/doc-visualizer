@@ -210,32 +210,40 @@ def make_chart_spec(
     Summary: {insight.insight_summary}
 
     Your task:
-    1. Select the best chart type from the available ones for displaying the insight.
-    2. Fill out all required data fields with information from the excerpts.
+    1. Select the best chart type from the available ones for displaying the insight in a visually appealing manner for investors.
+        Investors will be looking at this chart to make decisions about the company - so it should be clear and informative.
+    2. Fill out all required data fields using information from the excerpts.
     """
 
     client = get_openai_client()
 
     response = client.beta.chat.completions.parse(
+        model='o1-mini',
+        messages=[
+            {
+                "role": "user",
+                "content": system_message + '\n\n' + user_message
+            }
+        ],
+    )
+
+    response_formatted = client.beta.chat.completions.parse(
         model=model,
         messages=[
             {
-                "role": "system",
-                "content": system_message,
-            },
-            {
                 "role": "user",
-                "content": user_message
+                "content": (
+                    f"Given the following data, format it with the given response format:\n\n{response.choices[0].message.content}"
+                )
             }
         ],
         temperature=0.3,
         response_format=_ChartSpecAdapter
     )
 
-    message = response.choices[0].message
+    message = response_formatted.choices[0].message
     if message.parsed:
         chart_spec = message.parsed.chart
-        print(chart_spec)
     else:
         print("[ERROR]: No parsed response from model completion.")
         print(message)
@@ -247,11 +255,13 @@ def create_visual_module(
     insight: Insight, 
     section_name: str, 
     section_summary: str, 
-    module_id: str
+    module_id: str,
+    model: str = 'gpt-4o-mini'
 ) -> VisualModule:
-    chart = make_chart_spec(insight, section_name, section_summary)
+    chart = make_chart_spec(insight, section_name, section_summary, model=model)
     # If GPT fails or returns None, we can fallback to a simple text card:
     if not chart:
+        print('[ERROR]: Language model failed to generate a chart spec. Fallback to TextCard.')
         chart = TextCard(
             chart_type="text_card",
             title=insight.name,
@@ -262,10 +272,11 @@ def create_visual_module(
 
 def make_visualization(
     insights: InsightsReponse,
-    id: str
+    id: str,
+    model: str = 'gpt-4o-mini'
 ) -> VisualResponse:
 
-    def process_section(section_name: str, section: Section, section_id: str) -> VisualSection:
+    def process_section(section_name: str, section: Section, section_id: str, model: str = 'gpt-4o-mini') -> VisualSection:
         # Do GPT visualization creation in parallel for the Section
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             future_main = executor.submit(
@@ -274,6 +285,7 @@ def make_visualization(
                 section_name = section_name,
                 section_summary = section.summary,
                 module_id = f"{section_id}-main",
+                model=model
             )
             future_side1 = executor.submit(
                 create_visual_module,
@@ -281,6 +293,7 @@ def make_visualization(
                 section_name = section_name,
                 section_summary = section.summary,
                 module_id = f"{section_id}-side1",
+                model=model
             )
             future_side2 = executor.submit(
                 create_visual_module,
@@ -288,6 +301,7 @@ def make_visualization(
                 section_name = section_name,
                 section_summary = section.summary,
                 module_id = f"{section_id}-side2",
+                model=model
             )
 
             # Get results
@@ -305,10 +319,10 @@ def make_visualization(
         )
 
     # Process each of the sections
-    overview_sec = process_section("Overview", insights.overview, f'{id}-overview')
-    op_perf_sec = process_section("Operational Performance", insights.operational_performance, f'{id}-op_perf')
-    risk_factors_sec = process_section("Risk Factors", insights.risk_factors, f'{id}-risk_factors')
-    market_pos_sec = process_section("Market Position", insights.market_position, f'{id}-market_pos')
+    overview_sec = process_section("Overview", insights.overview, f'{id}-overview', model=model)
+    op_perf_sec = process_section("Operational Performance", insights.operational_performance, f'{id}-op_perf', model=model)
+    risk_factors_sec = process_section("Risk Factors", insights.risk_factors, f'{id}-risk_factors', model=model)
+    market_pos_sec = process_section("Market Position", insights.market_position, f'{id}-market_pos', model=model)
 
     # Construct the final VisualResponse
     return VisualResponse(

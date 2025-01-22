@@ -33,26 +33,34 @@ def find_section_insights(path: str, model: str = "gpt-4o-mini") -> InsightsRepo
     client = get_openai_client()
 
     response = client.beta.chat.completions.parse(
-        model=model,
+        model='o1-mini',
         messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a world-class financial analyst that "
-                    "identifies the most surprising or important"
-                    "parts of each section of a 10-K filing. Please"
-                    "be thorough."
-                ),
-            },
             {
                 "role": "user",
                 "content": (
+                    "You are a world-class financial analyst that "
+                    "identifies the most surprising or important "
+                    "parts of each section of a 10-K filing.\n\n"
                     f"Here is the text of a 10-K document:\n\n{full_text}\n\n"
+                    "You are to provide the company name, and three insights for **each** "
+                    "of the following sections: Overview, Operational Performance, Risk Factors, and Market Position.\n\n"
                     "Identify the most surprising or important pieces "
                     "of information or data that should be included in a summary for "
                     "investors for each section. Respond with a short summary of each key insight. "
-                    "The main insight should be quantitative and the side insights can be quantitative or qualitative. "
-                    "All insights should be supported by specific data or information from the document."
+                    "The main insight should be quantitative and the side insights may be quantitative or qualitative. "
+                    "All insights should be supported by specific data or information from the document so that that it may be visualized."
+                )
+            }
+        ],
+    )
+
+    response_formatted = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {
+                "role": "user",
+                "content": (
+                    f"Given the following data, format it with the given response format:\n\n{response.choices[0].message.content}"
                 )
             }
         ],
@@ -60,7 +68,7 @@ def find_section_insights(path: str, model: str = "gpt-4o-mini") -> InsightsRepo
         response_format=InsightsReponse
     )
 
-    message = response.choices[0].message
+    message = response_formatted.choices[0].message
     if message.parsed:
         insights = message.parsed
     else:
