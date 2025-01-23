@@ -58,7 +58,6 @@ Below is a simplified flow diagram of how the system works:
 **Backend**  
 - **[FastAPI](https://fastapi.tiangolo.com/)**: For the REST API, background tasks, and overall application logic.  
 - **[Python](https://www.python.org/)**: Core language for the backend.  
-- **[pdfplumber](https://github.com/jsvine/pdfplumber)**: To parse PDF text.  
 - **[OpenAI API](https://platform.openai.com/docs/guides/)**: For text embeddings using embeddings API and for summarizing documents, generating insights, and chart specs using GPT API.  
 - **[Pinecone](https://www.pinecone.io/)**: Vector database to store embeddings for RAG.   
 - **[Pydantic](https://docs.pydantic.dev/)**: For data validation and modeling (e.g., chart specs, insights).
@@ -66,12 +65,10 @@ Below is a simplified flow diagram of how the system works:
 **Frontend**  
 - **[Next.js](https://nextjs.org/docs/app)**: Main React framework.  
 - **[TypeScript](https://www.typescriptlang.org/)**
-- **[Tailwind CSS](https://tailwindcss.com/)**
-- **[ADD CHARTING LIBRARY]()**: Charting library description.
 
 ---
 
-## Project Structure
+## [WIP] Project Structure
 
 A simplified view:
 
@@ -154,7 +151,7 @@ doc-visualizer
 4. **Upload a PDF**  
    - Go to `[frontend_base_url]/upload` (e.g., `http://localhost:3000/upload`).  
    - Select a PDF (10-K).  
-   - The system will parse, embed, and store it in Pinecone in the background then generate the visualization at [frontend_base_url]/visualize`.
+   - The system will parse, embed, and store it in Pinecone in the background then generate the visualization at [frontend_base_url]/visualize/[filename]`.
 
 ---
 
