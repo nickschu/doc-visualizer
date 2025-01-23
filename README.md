@@ -1,4 +1,4 @@
-# Doc Visualizer
+# [WIP] Doc Visualizer
 
 **Doc Visualizer** is a full-stack application that takes a **10-K financial document** and produces **dynamic visualizations** for the **most important insights** in the document.  
 
