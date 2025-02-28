@@ -16,5 +16,6 @@ def chunk_text_from_pdf(file_path: str) -> str:
             text = page.extract_text()
             if text:
                 # TODO: Check embedding size limits via tiktoken. OAI embeddings allow up to 8191 tokens.
+                #       Page / chunk could be more than 8191 tokens.
                 text_chunks.append(text)
     return text_chunks

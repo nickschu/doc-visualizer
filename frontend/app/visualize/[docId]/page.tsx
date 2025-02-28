@@ -55,7 +55,10 @@ export default function VisualizePage() {
   }
 
   if (!visualData) {
-    return <div className="p-4">Loading visualization...</div>;
+    return <div className="flex flex-col items-center justify-center min-h-screen text-black">
+      <h1 className="text-2xl mb-4">Loading visualization...</h1>
+      
+    </div>
   }
 
   // Now we have the entire VisualResponse in visualData

@@ -11,7 +11,7 @@ from .clients import get_openai_client
 class ChartBase(BaseModel):
     """
     Base class containing shared fields for all chart types.
-    GPT will output `chart_type` to identify which subclass to use.
+    LLM will output `chart_type` to identify which subclass to use.
     """
     chart_type: str  # e.g., "bar_chart", "pie_chart", etc.
     title: Optional[str] = None
@@ -36,7 +36,7 @@ class PieChart(ChartBase):
     labels: List[str]
     # Corresponding slice values
     values: List[float]
-    # Optional total if needed (or GPT might calculate the sum of values)
+    # Optional total if needed (or LLM might calculate the sum of values)
     total: Optional[float] = None
 
 
@@ -86,7 +86,7 @@ class MultiSeriesBarChart(ChartBase):
 ChartSpec = Union[BarChart, PieChart, GaugeChart, SingleStatCard, LineChart, MultiSeriesBarChart, TextCard]
 
 class _ChartSpecAdapter(BaseModel):
-    # Adapter for parsing the GPT-4o output into a ChartSpec. In this format since OAI endpoint
+    # Adapter for parsing the LLM output into a ChartSpec. In this format since OAI endpoint
     # doesn't seem to accept Union or Pydantic v2 RootModels directly.
     # TODO: See if there are other ways to create root models that OAI endpoint accepts
     chart: ChartSpec
@@ -100,7 +100,7 @@ class VisualModule(BaseModel):
 class VisualSection(BaseModel):
     section_id: str # Unique identifier for this section
     name: str  # e.g. "overview", "risk_factors"
-    summary: str  # textual summary from the original GPT response
+    summary: str  # textual summary from LLM response
     main_module: VisualModule
     side_module_1: VisualModule
     side_module_2: VisualModule
@@ -118,7 +118,7 @@ def make_chart_spec(
     insight: Insight,
     section_name: str,
     section_summary: str,
-    model: str = 'gpt-4o-mini'
+    model: str = 'o3-mini'
 ) -> Optional[ChartSpec]:
 
     # System Prompt
@@ -218,30 +218,18 @@ def make_chart_spec(
     client = get_openai_client()
 
     response = client.beta.chat.completions.parse(
-        model='o1-mini',
+        model=model,
         messages=[
             {
                 "role": "user",
                 "content": system_message + '\n\n' + user_message
             }
         ],
-    )
-
-    response_formatted = client.beta.chat.completions.parse(
-        model=model,
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    f"Given the following data, format it with the given response format:\n\n{response.choices[0].message.content}"
-                )
-            }
-        ],
-        temperature=0.3,
         response_format=_ChartSpecAdapter
     )
 
-    message = response_formatted.choices[0].message
+    print(response)
+    message = response.choices[0].message
     if message.parsed:
         chart_spec = message.parsed.chart
     else:
@@ -256,10 +244,10 @@ def create_visual_module(
     section_name: str, 
     section_summary: str, 
     module_id: str,
-    model: str = 'gpt-4o-mini'
+    model: str = 'o3-mini'
 ) -> VisualModule:
     chart = make_chart_spec(insight, section_name, section_summary, model=model)
-    # If GPT fails or returns None, we can fallback to a simple text card:
+    # If LLM fails or returns None, we can fallback to a simple text card:
     if not chart:
         print('[ERROR]: Language model failed to generate a chart spec. Fallback to TextCard.')
         chart = TextCard(
@@ -273,11 +261,11 @@ def create_visual_module(
 def make_visualization(
     insights: InsightsReponse,
     id: str,
-    model: str = 'gpt-4o-mini'
+    model: str = 'o3-mini'
 ) -> VisualResponse:
 
-    def process_section(section_name: str, section: Section, section_id: str, model: str = 'gpt-4o-mini') -> VisualSection:
-        # Do GPT visualization creation in parallel for the Section
+    def process_section(section_name: str, section: Section, section_id: str, model: str = 'o3-mini') -> VisualSection:
+        # Do LLM visualization creation in parallel for the Section
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             future_main = executor.submit(
                 create_visual_module,

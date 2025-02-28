@@ -5,11 +5,10 @@
 ## Table of Contents
 
 1. [Overview](#overview)  
-2. [Features](#features)  
-3. [Architecture & Workflow](#architecture--workflow)  
-4. [Tech Stack](#tech-stack)  
-5. [Project Structure](#project-structure)  
-6. [Setup & Usage](#setup--usage)  
+2. [Architecture & Workflow](#architecture--workflow)  
+3. [Tech Stack](#tech-stack)  
+4. [Project Structure](#project-structure)  
+5. [Setup & Usage](#setup--usage)  
 ---
 
 ## Overview
@@ -68,35 +67,27 @@ Below is a simplified flow diagram of how the system works:
 
 ---
 
-## [WIP] Project Structure
-
+## Project Structure
+[WIP]
 A simplified view:
 
 ```
-doc-visualizer
 ├── backend
 │   └── app
-│       ├── main.py              # FastAPI entry point
 │       ├── routers
-│       │   ├── upload.py        # Endpoint for PDF upload
-│       │   ├── analysis.py      # Endpoint for GPT-based doc analysis
-│       │   └── visualization.py # Endpoint for generating chart specs
 │       ├── services
-│       │   ├── parsing.py       # PDF parsing logic
-│       │   ├── embeddings.py    # OpenAI embeddings code
-│       │   ├── pinecone.py      # Pinecone upsert/query
-│       │   └── clients.py       # External service clients (OpenAI, Pinecone, etc.)
-│       └── ...
+│       └── main.py
 └── frontend
     ├── app
+    │   ├── api
+    │   │   ├── generate-visualization
+    │   │   └── upload
     │   ├── upload
-    │   │   └── page.tsx         # File upload page
-    │   ├── visualize
-    │   │   └── page.tsx         # Visualization template
-    │   └── api
-    │       └── ...              # Next.js API routes to proxy 
+    │   └── visualize
+    └── components
+        ├── charts
+        └── visualization
 ```
-
 ---
 
 ## Setup & Usage
@@ -118,12 +109,7 @@ doc-visualizer
       ```bash
       pip install -r requirements.txt
       ```
-   3. Configure environment variables (in a `.env` or export manually):
-      ```bash
-      TODO: add rest of needed env variables here
-      export OPENAI_API_KEY=YOUR_OPENAI_KEY
-      export PINECONE_API_KEY=YOUR_PINECONE_KEY
-      ```
+   3. Configure environment variables (see `.env.example`)
    4. Start the FastAPI server:
       ```bash
       uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -138,10 +124,7 @@ doc-visualizer
       ```bash
       npm install
       ```
-   3. Create `.env.local`:
-      ```bash
-      NEXT_PUBLIC_API_URL=http://localhost:8000
-      ```
+   3. Configure environment variables (see `.env.example`)
    4. Run dev server:
       ```bash
       npm run dev

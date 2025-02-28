@@ -19,10 +19,11 @@ def visualize_doc(doc_id: str = Body(..., embed=True)) -> VisualResponse:
         raise HTTPException(status_code=404, detail="Document not found.")
 
     try:
-        insights = find_section_insights(pdf_path, model="gpt-4o-mini")
-        visualization = make_visualization(insights, doc_id, model="gpt-4o-mini")
+        insights = find_section_insights(pdf_path, model="o3-mini")
+        visualization = make_visualization(insights, doc_id, model="o3-mini")
         return visualization
     except Exception as e:
+        print(e)
         raise HTTPException(status_code=500, detail=str(e))
 
 def _pdf_path_for_doc_id(doc_id: str) -> str:

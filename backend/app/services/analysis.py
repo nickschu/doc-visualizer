@@ -20,7 +20,7 @@ class InsightsReponse(BaseModel):
     risk_factors: Section
     market_position: Section
 
-def find_section_insights(path: str, model: str = "gpt-4o-mini") -> InsightsReponse:
+def find_section_insights(path: str, model: str = "o3-mini") -> InsightsReponse:
     """
     Prompt model for the sections of the document and the most important insights for each section.
     :param path: The path to the document.
@@ -33,7 +33,7 @@ def find_section_insights(path: str, model: str = "gpt-4o-mini") -> InsightsRepo
     client = get_openai_client()
 
     response = client.beta.chat.completions.parse(
-        model='o1-mini',
+        model=model,
         messages=[
             {
                 "role": "user",
@@ -52,23 +52,13 @@ def find_section_insights(path: str, model: str = "gpt-4o-mini") -> InsightsRepo
                 )
             }
         ],
-    )
-
-    response_formatted = client.beta.chat.completions.parse(
-        model=model,
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    f"Given the following data, format it with the given response format:\n\n{response.choices[0].message.content}"
-                )
-            }
-        ],
-        temperature=0.3,
         response_format=InsightsReponse
     )
 
-    message = response_formatted.choices[0].message
+    print(response)
+
+
+    message = response.choices[0].message
     if message.parsed:
         insights = message.parsed
     else:
