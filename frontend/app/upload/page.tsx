@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function upload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [docId, setDocId] = useState("");
+  const router = useRouter();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -37,7 +39,13 @@ export default function upload() {
       }
 
       const json = await res.json();
-      setDocId(json.doc_id ?? "");
+      const uploadedDocId = json.doc_id ?? "";
+      setDocId(uploadedDocId);
+      
+      // Navigate immediately after successful upload
+      if (uploadedDocId) {
+        router.push(`/visualize/${uploadedDocId}`);
+      }
     } catch (error) {
       setErrorMsg((error as Error).message);
     } finally {
@@ -66,9 +74,9 @@ export default function upload() {
 
       {errorMsg && <p className="mt-4 text-red-500">Error: {errorMsg}</p>}
 
-      {docId && (
+      {docId && !isUploading && (
         <p className="mt-4 text-green-600">
-          Successfully uploaded! Document ID: <strong>{docId}</strong>
+          Successfully uploaded! Navigating to visualization...
         </p>
       )}
     </div>

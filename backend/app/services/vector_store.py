@@ -34,23 +34,22 @@ def upsert_embeddings(
 
 def query_top_k(
     query_embedding: List[float],
+    doc_id: str,
     top_k: int = 5,
-    filter_dict: Dict = None
 ) -> List[Dict]:
     """
-    Query Pinecone for the top-k most similar vectors.
+    Query Pinecone for the top-k most similar vectors that belong to a specific document.
     :param query_embedding: The embedding of the user query or content to match.
+    :param doc_id: The document ID to filter vectors by.
     :param top_k: How many matches to retrieve.
-    :param filter_dict: Optional filter to limit results by metadata.
     :return: A list of matches, each match is a dict containing { id, score, metadata }.
     """
-
     index = get_pinecone_client()
 
     response = index.query(
         vector=query_embedding,
         top_k=top_k,
         include_metadata=True,
-        filter=filter_dict,
+        filter={"doc_id": doc_id},
     )
     return response["matches"]

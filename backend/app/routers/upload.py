@@ -1,5 +1,9 @@
 import os
+import uuid
+import hashlib
+from datetime import datetime
 from fastapi import APIRouter, File, UploadFile, HTTPException, BackgroundTasks
+import glob
 
 from ..services.parsing import chunk_text_from_pdf
 from ..services.embeddings import get_embedding
@@ -14,16 +18,28 @@ async def upload_doc(file: UploadFile = File(...), background_tasks: BackgroundT
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
-    # TODO: handle storing documents for multiple users
-    doc_id = file.filename.split(".")[0]  # Use filename as doc_id for now
-
+    # Generate a deterministic document ID based solely on content hash
+    file_content = await file.read()
+    # Using the full MD5 hash for better uniqueness
+    content_hash = hashlib.md5(file_content).hexdigest()
+    
+    # Create an ID that depends only on the content
+    doc_id = f"doc_{content_hash}"
+    
+    # Check if a file with this hash already exists
     file_path = f"{TEMP_DIRECTORY}/{doc_id}.pdf"
+    
+    # Skip processing if the file already exists
+    if os.path.exists(file_path):
+        return {"message": "File already exists", "doc_id": doc_id}
+    
+    # Otherwise, save the file
     with open(file_path, "wb") as f:
-        f.write(await file.read())
+        f.write(file_content)
 
-    # TODO: Think about whether this should block
-    # parse_and_store_document(doc_id, file_path)
-    background_tasks.add_task(parse_and_store_document, doc_id, file_path)
+    # Blocking, so that we don't try to make the visualization until the document is uploaded
+    parse_and_store_document(doc_id, file_path)
+    # background_tasks.add_task(parse_and_store_document, doc_id, file_path)
 
     return {"message": "File uploaded successfully", "doc_id": doc_id}
 

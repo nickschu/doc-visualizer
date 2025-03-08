@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException, Body
 
 from ..services.analysis import find_section_insights
 from ..services.visualize import make_visualization, VisualResponse
+from ..services.cache import visualization_cache
 
 router = APIRouter()
 
@@ -10,6 +11,7 @@ router = APIRouter()
 def visualize_doc(doc_id: str = Body(..., embed=True)) -> VisualResponse:
     """
     Produces a VisualResponse for the given document ID.
+    Uses a caching system to avoid regeneration.
     """
     if not doc_id:
         raise HTTPException(status_code=400, detail="Missing doc_id")
@@ -18,9 +20,22 @@ def visualize_doc(doc_id: str = Body(..., embed=True)) -> VisualResponse:
     if not pdf_path or not os.path.exists(pdf_path):
         raise HTTPException(status_code=404, detail="Document not found.")
 
+    # Default model to use
+    model = "o3-mini"
+    
+    # Try to get the visualization from cache
+    cached_visualization = visualization_cache.get(doc_id, model)
+    if cached_visualization:
+        return cached_visualization
+    
+    # If not in cache, generate the visualization
     try:
-        insights = find_section_insights(pdf_path, model="o3-mini")
-        visualization = make_visualization(insights, doc_id, model="o3-mini")
+        insights = find_section_insights(pdf_path, model=model)
+        visualization = make_visualization(insights, doc_id, model=model)
+        
+        # Cache the visualization for future use
+        visualization_cache.set(doc_id, model, visualization)
+        
         return visualization
     except Exception as e:
         print(e)

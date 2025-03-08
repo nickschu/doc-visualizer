@@ -118,6 +118,7 @@ def make_chart_spec(
     insight: Insight,
     section_name: str,
     section_summary: str,
+    doc_id: str,
     model: str = 'o3-mini'
 ) -> Optional[ChartSpec]:
 
@@ -191,7 +192,7 @@ def make_chart_spec(
 
     # Get embeddings for insight text
     emb = get_embedding([insight.name + ' ' + insight.insight_summary])[0]
-    relevant_text = query_top_k(emb, top_k=3)
+    relevant_text = query_top_k(emb, doc_id=doc_id, top_k=3)
     relevant_text = "\n\n".join([f"<excerpt_{i+1}>\n{t['metadata']['text']} </excerpt_{i+1}>" for i, t in enumerate(relevant_text)])
 
 
@@ -243,10 +244,11 @@ def create_visual_module(
     insight: Insight, 
     section_name: str, 
     section_summary: str, 
+    doc_id: str,
     module_id: str,
     model: str = 'o3-mini'
 ) -> VisualModule:
-    chart = make_chart_spec(insight, section_name, section_summary, model=model)
+    chart = make_chart_spec(insight, section_name, section_summary, doc_id=doc_id, model=model)
     # If LLM fails or returns None, we can fallback to a simple text card:
     if not chart:
         print('[ERROR]: Language model failed to generate a chart spec. Fallback to TextCard.')
@@ -260,11 +262,11 @@ def create_visual_module(
 
 def make_visualization(
     insights: InsightsReponse,
-    id: str,
+    doc_id: str,
     model: str = 'o3-mini'
 ) -> VisualResponse:
 
-    def process_section(section_name: str, section: Section, section_id: str, model: str = 'o3-mini') -> VisualSection:
+    def process_section(section_name: str, section: Section, section_id: str, doc_id: str, model: str = 'o3-mini') -> VisualSection:
         # Do LLM visualization creation in parallel for the Section
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             future_main = executor.submit(
@@ -272,6 +274,7 @@ def make_visualization(
                 insight = section.main_insight,
                 section_name = section_name,
                 section_summary = section.summary,
+                doc_id = doc_id,
                 module_id = f"{section_id}-main",
                 model=model
             )
@@ -280,6 +283,7 @@ def make_visualization(
                 insight = section.side_insight_1,
                 section_name = section_name,
                 section_summary = section.summary,
+                doc_id = doc_id,
                 module_id = f"{section_id}-side1",
                 model=model
             )
@@ -288,6 +292,7 @@ def make_visualization(
                 insight = section.side_insight_2,
                 section_name = section_name,
                 section_summary = section.summary,
+                doc_id = doc_id,
                 module_id = f"{section_id}-side2",
                 model=model
             )
@@ -307,14 +312,14 @@ def make_visualization(
         )
 
     # Process each of the sections
-    overview_sec = process_section("Overview", insights.overview, f'{id}-overview', model=model)
-    op_perf_sec = process_section("Operational Performance", insights.operational_performance, f'{id}-op_perf', model=model)
-    risk_factors_sec = process_section("Risk Factors", insights.risk_factors, f'{id}-risk_factors', model=model)
-    market_pos_sec = process_section("Market Position", insights.market_position, f'{id}-market_pos', model=model)
+    overview_sec = process_section("Overview", insights.overview, f'{doc_id}-overview', doc_id=doc_id, model=model)
+    op_perf_sec = process_section("Operational Performance", insights.operational_performance, f'{doc_id}-op_perf', doc_id=doc_id, model=model)
+    risk_factors_sec = process_section("Risk Factors", insights.risk_factors, f'{doc_id}-risk_factors', doc_id=doc_id, model=model)
+    market_pos_sec = process_section("Market Position", insights.market_position, f'{doc_id}-market_pos', doc_id=doc_id, model=model)
 
     # Construct the final VisualResponse
     return VisualResponse(
-        response_id=id,
+        response_id=doc_id,
         company_name=insights.company_name,
         overview=overview_sec,
         operational_performance=op_perf_sec,
