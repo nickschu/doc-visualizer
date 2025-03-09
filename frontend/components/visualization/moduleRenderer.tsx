@@ -15,6 +15,16 @@ import {
 export function ModuleRenderer({ module }: { module: VisualModule }) {
   const chart = module.chart as ChartSpec;
 
+  // Create a wrapper div that can handle animations and styling
+  return (
+    <div className="module-container h-full transition-all duration-300 ease-in-out">
+      {renderChart(chart)}
+    </div>
+  );
+}
+
+// Separate function to render the specific chart type
+function renderChart(chart: ChartSpec) {
   switch (chart.chart_type) {
     case "text_card":
       return <TextCardComponent chart={chart} />;
@@ -32,8 +42,11 @@ export function ModuleRenderer({ module }: { module: VisualModule }) {
       return <MultiSeriesBarComponent chart={chart} />;
     default:
       return (
-        <div className="border p-4 my-2">
-          <strong>Unknown chart type:</strong> {chart}
+        <div className="p-4 border border-red-200 bg-red-50 rounded-md">
+          <p className="text-red-500 font-medium">Unknown chart type</p>
+          <pre className="mt-2 text-xs overflow-auto p-2 bg-white rounded border">
+            {JSON.stringify(chart, null, 2)}
+          </pre>
         </div>
       );
   }

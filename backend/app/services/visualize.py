@@ -229,7 +229,6 @@ def make_chart_spec(
         response_format=_ChartSpecAdapter
     )
 
-    print(response)
     message = response.choices[0].message
     if message.parsed:
         chart_spec = message.parsed.chart

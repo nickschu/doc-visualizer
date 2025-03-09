@@ -55,9 +55,6 @@ def find_section_insights(path: str, model: str = "o3-mini") -> InsightsReponse:
         response_format=InsightsReponse
     )
 
-    print(response)
-
-
     message = response.choices[0].message
     if message.parsed:
         insights = message.parsed

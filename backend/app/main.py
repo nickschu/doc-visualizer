@@ -10,8 +10,6 @@ from .services.cache import visualization_cache
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize Pinecone index
-    init_pinecone()
 
     yield # Server starts
 

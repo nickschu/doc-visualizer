@@ -32,8 +32,14 @@ def init_pinecone():
         host = pc.describe_index(INDEX_NAME).host
         index = pc.Index(INDEX_NAME, host)
         # Delete all vectors in the index
-        index.delete(delete_all=True)
-        print(f"Emptied existing index: {INDEX_NAME}")
+        try:
+            index.delete(delete_all=True)
+            print(f"Emptied existing index: {INDEX_NAME}")
+        except Exception as e:
+            if "Namespace not found" in str(e):
+                print(f"No vectors to delete in index {INDEX_NAME} (namespace not found)")
+            else:
+                raise  # Re-raise if it's a different error
     else:
         # Create new index
         pc.create_index(
@@ -49,7 +55,8 @@ def init_pinecone():
         print(f"Created new index: {INDEX_NAME}")
 
 # Create global index object
-# Index is initialized in main.py before the server starts
+# Initialize Pinecone index
+init_pinecone()
 host = pc.describe_index(INDEX_NAME).host
 pc_index = pc.Index(INDEX_NAME, host)
 
