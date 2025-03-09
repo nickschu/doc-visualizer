@@ -168,6 +168,26 @@ class VisualizationCache:
                 print(f"Error removing cache file {file_path}: {e}")
         
         print(f"Cache cleanup complete. New size: {current_size_mb:.2f}MB")
+    
+    def clear_cache(self) -> None:
+        """
+        Completely clear the cache directory by removing all cache files.
+        This should be called during server shutdown.
+        """
+        try:
+            files_removed = 0
+            cache_size_before = self._get_cache_size_mb()
+            
+            for file_path in glob.glob(os.path.join(self.cache_dir, "*.json")):
+                try:
+                    os.remove(file_path)
+                    files_removed += 1
+                except Exception as e:
+                    print(f"Error removing cache file {file_path}: {e}")
+            
+            print(f"Visualization cache cleared: removed {files_removed} files ({cache_size_before:.2f}MB)")
+        except Exception as e:
+            print(f"Error clearing visualization cache: {e}")
 
 # Create a singleton instance
 visualization_cache = VisualizationCache() 

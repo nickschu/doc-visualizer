@@ -40,11 +40,12 @@ export default function upload() {
 
       const json = await res.json();
       const uploadedDocId = json.doc_id ?? "";
-      setDocId(uploadedDocId);
       
       // Navigate immediately after successful upload
       if (uploadedDocId) {
         router.push(`/visualize/${uploadedDocId}`);
+      } else {
+        setErrorMsg("Server did not return a valid document ID");
       }
     } catch (error) {
       setErrorMsg((error as Error).message);

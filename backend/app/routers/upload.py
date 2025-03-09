@@ -1,9 +1,6 @@
 import os
-import uuid
 import hashlib
-from datetime import datetime
 from fastapi import APIRouter, File, UploadFile, HTTPException, BackgroundTasks
-import glob
 
 from ..services.parsing import chunk_text_from_pdf
 from ..services.embeddings import get_embedding

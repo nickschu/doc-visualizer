@@ -1,4 +1,3 @@
-import os
 from typing import List, Dict
 
 from .clients import get_pinecone_client

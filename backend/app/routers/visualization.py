@@ -21,7 +21,7 @@ def visualize_doc(doc_id: str = Body(..., embed=True)) -> VisualResponse:
         raise HTTPException(status_code=404, detail="Document not found.")
 
     # Default model to use
-    model = "o3-mini"
+    model = os.getenv("OAI_MODEL", "o3-mini")
     
     # Try to get the visualization from cache
     cached_visualization = visualization_cache.get(doc_id, model)

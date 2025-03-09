@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 
 import { VisualResponse } from "@/components/visualization/visualTypes";
@@ -22,6 +22,7 @@ const SECTIONS: Section[] = [
 export default function VisualizePage() {
   const [visualData, setVisualData] = useState<VisualResponse | null>(null);
   const [error, setError] = useState<string>("");
+  const fetchedRef = useRef<{[key: string]: boolean}>({});
 
   const params = useParams();
 
@@ -30,20 +31,31 @@ export default function VisualizePage() {
 
   useEffect(() => {
     const fetchVisualization = async () => {
+      // Skip if we've already fetched this docId
+      const docId = params.docId as string;
+      if (fetchedRef.current[docId]) {
+        return;
+      }
+      
+      // Mark this docId as fetched
+      fetchedRef.current[docId] = true;
+      
       try {
         const res = await fetch("/api/generate-visualization", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ doc_id: params.docId }),
+          body: JSON.stringify({ doc_id: docId }),
         });
 
         if (!res.ok) {
-          throw new Error(`Failed to fetch visualization for docId=${params.docId}`);
+          throw new Error(`Failed to fetch visualization for docId=${docId}`);
         }
         const data = await res.json();
         setVisualData(data);
       } catch (err: any) {
         setError(err.message);
+        // Reset fetched status on error so we can try again
+        fetchedRef.current[docId] = false;
       }
     };
 
