@@ -4,11 +4,10 @@
 
 ## Table of Contents
 
-1. [Overview](#overview)  
-2. [Architecture & Workflow](#architecture--workflow)  
-3. [Tech Stack](#tech-stack)  
-4. [Project Structure](#project-structure)  
-5. [Setup & Usage](#setup--usage)  
+1. [Overview](#overview)   
+2. [Tech Stack](#tech-stack)  
+3. [Project Structure](#project-structure)  
+4. [Setup & Usage](#setup--usage)  
 ---
 
 ## Overview
@@ -22,33 +21,6 @@
 5. **Generates** chart or module specifications that can be rendered dynamically in the front-end.
 
 The end goal is to turn dense text content into **meaningful data visualizations** so users can spot important trends, performance metrics, and risk factors more quickly.
-
----
-
-## Architecture & Workflow
-
-Below is a simplified flow diagram of how the system works:
-
-1. **User Uploads PDF**  
-   - The Next.js front-end (via `/upload`) sends a PDF to the FastAPI backend.  
-   - The backend saves the PDF and spawns a **background task** to parse and embed.
-
-2. **Background Task**  
-   - **Parse** PDF pages into text chunks (`pdfplumber`).  
-   - **Generate embeddings** (OpenAI’s Embeddings API).  
-   - **Upsert** embeddings into Pinecone with metadata (doc ID, chunk text, etc.).  
-
-3. **Generate Insights**  
-   - A **summary** endpoint (e.g. `/analysis`) calls GPT to find **key insights** in the document.  
-   - GPT returns structured data (`InsightsResponse`), including sections and individual insights.
-
-4. **Visualization Specs**  
-   - A **visualization** endpoint (e.g. `/generate-visuals`) takes those insights and prompts GPT again to decide **chart types** and data mappings.  
-   - GPT produces a **Pydantic** chart spec (`ChartSpec`) for each insight.
-
-5. **Front-End Rendering**  
-   - The Next.js app fetches the final chart specs (from `/generate-visuals`) and renders them.
-   - The user sees a dashboard with main insights and side insights visually represented.
 
 ---
 
@@ -134,7 +106,7 @@ A simplified view:
 4. **Upload a PDF**  
    - Go to `[frontend_base_url]/upload` (e.g., `http://localhost:3000/upload`).  
    - Select a PDF (10-K).  
-   - The system will parse, embed, and store it in Pinecone in the background then generate the visualization at [frontend_base_url]/visualize/[filename]`.
+   - The system will generate the visualization at [frontend_base_url]/visualize/[doc-id]`.
 
 ---
 
